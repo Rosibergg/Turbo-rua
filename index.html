@@ -4,90 +4,237 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Turbo Rua</title>
+<title>TURBO RUA 2.0</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#14251c;color:white;font-family:Arial;overflow:hidden}
-canvas{display:block;width:100vw;height:100vh}
-#hud{position:absolute;top:12px;left:12px;font-weight:bold;font-size:20px;text-shadow:2px 2px #000}
-#menu{position:absolute;inset:0;background:#07130ddd;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px}
-.panel{background:#203a2c;padding:25px;border-radius:20px;border:2px solid #70b86a;max-width:350px}
-h1{color:#ffcf42;font-size:36px}
-button{background:#ffc83d;border:0;padding:15px 25px;border-radius:12px;font-size:18px;font-weight:bold;margin:8px}
-.controls{position:absolute;bottom:20px;width:100%;display:flex;justify-content:space-between;padding:0 25px}
-.controls button{background:#152a25dd;color:white;font-size:30px;width:75px;height:70px}
+body{margin:0;overflow:hidden;background:#87ceeb;font-family:Arial;color:white}
+canvas{display:block}
+#hud{position:absolute;top:15px;left:15px;font-weight:bold;font-size:19px;text-shadow:2px 2px 4px black;pointer-events:none}
+#menu{position:absolute;inset:0;background:#07111cbb;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px}
+.panel{background:#152b39;padding:25px;border:2px solid #ffca28;border-radius:20px;max-width:340px}
+h1{color:#ffca28;font-size:34px}
+button{border:0;border-radius:12px;background:#ffc928;color:#161616;font-size:19px;font-weight:bold;padding:16px 24px}
+#controls{position:absolute;bottom:20px;width:100%;display:flex;justify-content:space-between;padding:0 22px;pointer-events:none}
+#controls button{pointer-events:auto;background:#172b39dd;color:white;font-size:30px;width:76px;height:70px;padding:0;border:2px solid #ffffff66}
+#nitro{position:absolute;bottom:105px;right:22px;background:#e66b18;color:white;font-size:15px}
 </style>
 </head>
 <body>
-<canvas id="c"></canvas>
-<div id="hud">🏁 TURBO RUA<br><span id="score">0 metros</span></div>
-<div class="controls">
+<div id="hud">🏁 TURBO RUA 2.0<br><span id="score">0 metros</span><br><span id="speed">0 km/h</span></div>
+<div id="controls">
 <button id="left">◀</button>
 <button id="right">▶</button>
 </div>
-<div id="menu">
-<div class="panel">
-<h1>🏎️ TURBO RUA</h1>
-<p>Desvie dos carros e tente bater seu recorde!</p>
-<p>Use as setas para mudar de faixa.</p>
-<button id="start">COMEÇAR!</button>
-</div>
-</div>
-<script>
-const c=document.getElementById('c'),ctx=c.getContext('2d');
-let W,H,road,player=1,cars=[],score=0,speed=5,playing=false,spawn=0;
-function resize(){W=c.width=innerWidth;H=c.height=innerHeight;road=W*.78}
-onresize=resize;resize();
-function laneX(n){return W/2+(n-1)*road/3}
-function car(x,y,color,playerCar=false){
-ctx.fillStyle='#111';ctx.fillRect(x-22,y+8,44,65);
-ctx.fillStyle=color;ctx.fillRect(x-19,y,38,65);
-ctx.fillStyle='#9deaff';ctx.fillRect(x-14,y+12,28,17);
-ctx.fillStyle='#263b4a';ctx.fillRect(x-13,y+36,26,12);
-ctx.fillStyle='white';ctx.fillRect(x-16,y+3,7,5);ctx.fillRect(x+9,y+3,7,5);
+<button id="nitro">⚡ NITRO</button>
+<div id="menu"><div class="panel">
+<h1>🏎️ TURBO RUA 2.0</h1>
+<p>Corrida 3D! Desvie do trânsito e acelere!</p>
+<p>Use os botões para mudar de faixa.</p>
+<button id="start">COMEÇAR CORRIDA</button>
+</div></div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x87ceeb);
+scene.fog=new THREE.Fog(0x87ceeb,35,150);
+
+const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,250);
+camera.position.set(0,5,10);
+camera.lookAt(0,0,-8);
+
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.15;
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x526b45,2));
+
+const sun=new THREE.DirectionalLight(0xffffff,2.5);
+sun.position.set(-8,15,8);
+sun.castShadow=true;
+scene.add(sun);
+
+const mat=(color,roughness=.8)=>new THREE.MeshStandardMaterial({color,roughness});
+
+const grass=new THREE.Mesh(
+new THREE.PlaneGeometry(300,300),
+mat(0x397c38)
+);
+grass.rotation.x=-Math.PI/2;
+grass.position.y=-.12;
+grass.position.z=-80;
+scene.add(grass);
+
+const road=new THREE.Mesh(
+new THREE.PlaneGeometry(12,250),
+mat(0x30343b)
+);
+road.rotation.x=-Math.PI/2;
+road.position.z=-90;
+road.position.y=-.05;
+scene.add(road);
+
+const white=mat(0xffffff);
+const yellow=mat(0xffd02e);
+const dark=mat(0x17191d);
+
+const markings=[];
+for(let z=-180;z<15;z+=10){
+for(let x of [-2,2]){
+let m=new THREE.Mesh(new THREE.BoxGeometry(.13,.025,4),white);
+m.position.set(x,.01,z);
+scene.add(m);markings.push(m);
 }
-function draw(){
-ctx.fillStyle='#397c42';ctx.fillRect(0,0,W,H);
-ctx.fillStyle='#333';ctx.fillRect((W-road)/2,0,road,H);
-ctx.fillStyle='white';
-for(let y=-50;y<H;y+=65){
-let yy=(y+score*5)%H;
-ctx.fillRect(W/2-road/6,yy,4,32);
-ctx.fillRect(W/2+road/6,yy,4,32);
 }
-cars.forEach(a=>car(laneX(a.lane),a.y,a.color));
-car(laneX(player),H*.76,'#168de0',true);
+
+function makeCar(color){
+const g=new THREE.Group();
+const body=new THREE.Mesh(new THREE.BoxGeometry(1.8,.55,3.3),mat(color,.35));
+body.position.y=.65;
+g.add(body);
+const cabin=new THREE.Mesh(new THREE.BoxGeometry(1.35,.7,1.65),mat(0x182c3d,.25));
+cabin.position.set(0,1.2,-.1);
+g.add(cabin);
+const windshield=new THREE.Mesh(new THREE.BoxGeometry(1.15,.45,.04),mat(0x77c8e8,.2));
+windshield.position.set(0,1.23,-.94);
+g.add(windshield);
+for(let x of [-.95,.95]){
+for(let z of [-1,1]){
+const w=new THREE.Mesh(new THREE.BoxGeometry(.35,.5,.7),dark);
+w.position.set(x,.45,z);g.add(w);
 }
-function loop(){
-if(!playing)return;
-ctx.clearRect(0,0,W,H);
-score+=speed*.08;
-document.getElementById('score').textContent=Math.floor(score)+' metros';
-spawn++;
-if(spawn>55){spawn=0;cars.push({lane:Math.floor(Math.random()*3),y:-80,color:['#e74c3c','#e9b43b','#a56bd5'][Math.floor(Math.random()*3)]});}
-cars.forEach(a=>a.y+=speed);
-cars=cars.filter(a=>a.y<H+80);
-for(let a of cars){
-if(a.lane===player&&a.y>H*.76-55&&a.y<H*.76+55){
-playing=false;
+}
+for(let x of [-.55,.55]){
+const light=new THREE.Mesh(new THREE.BoxGeometry(.3,.12,.04),yellow);
+light.position.set(x,.72,-1.67);g.add(light);
+}
+return g;
+}
+
+const player=makeCar(0x087ce0);
+player.position.set(0,0,5);
+scene.add(player);
+
+const trees=[];
+function tree(x,z){
+const g=new THREE.Group();
+const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.15,.22,1.5,7),mat(0x704326));
+trunk.position.y=.75;g.add(trunk);
+const leaves=new THREE.Mesh(new THREE.ConeGeometry(1.1,3,8),mat(0x17652b));
+leaves.position.y=2.7;g.add(leaves);
+g.position.set(x,0,z);
+scene.add(g);trees.push(g);
+}
+for(let z=-180;z<15;z+=12){
+tree(-10-Math.random()*5,z);
+tree(10+Math.random()*5,z);
+}
+
+const traffic=[];
+const colors=[0xe53935,0xf6bd26,0x8e44ad,0xeeeeee,0x222222];
+
+function spawnCar(){
+const lane=[-4,0,4][Math.floor(Math.random()*3)];
+const car=makeCar(colors[Math.floor(Math.random()*colors.length)]);
+car.position.set(lane,0,-125);
+scene.add(car);
+traffic.push(car);
+}
+
+let running=false,score=0,speed=27,lane=1,nitro=false,spawnTimer=0;
+let last=0;
+
+function move(d){
+if(running)lane=Math.max(0,Math.min(2,lane+d));
+}
+document.getElementById('left').onclick=()=>move(-1);
+document.getElementById('right').onclick=()=>move(1);
+document.getElementById('nitro').onclick=()=>{
+if(running)nitro=true;
+};
+document.getElementById('nitro').onpointerup=()=>nitro=false;
+onkeydown=e=>{
+if(e.key==='ArrowLeft'||e.key==='a')move(-1);
+if(e.key==='ArrowRight'||e.key==='d')move(1);
+if(e.key===' ')nitro=true;
+};
+onkeyup=e=>{if(e.key===' ')nitro=false};
+
+function endGame(){
+running=false;
 document.querySelector('#menu h1').textContent='FIM DE JOGO!';
 document.querySelector('#menu p').textContent='Você percorreu '+Math.floor(score)+' metros!';
 document.getElementById('start').textContent='JOGAR NOVAMENTE';
 document.getElementById('menu').style.display='flex';
 }
+
+function animate(t){
+requestAnimationFrame(animate);
+const dt=Math.min((t-last)/1000,.04)||0;
+last=t;
+
+if(running){
+const actualSpeed=speed+(nitro?25:0);
+score+=actualSpeed*dt;
+document.getElementById('score').textContent=Math.floor(score)+' metros';
+document.getElementById('speed').textContent=Math.floor(actualSpeed*4)+' km/h';
+
+player.position.x=THREE.MathUtils.damp(player.position.x,[-4,0,4][lane],7,dt);
+player.rotation.z=THREE.MathUtils.damp(player.rotation.z,(player.position.x-[-4,0,4][lane])*.08,5,dt);
+
+markings.forEach(m=>{
+m.position.z+=actualSpeed*dt;
+if(m.position.z>12)m.position.z=-180;
+});
+
+trees.forEach(tr=>{
+tr.position.z+=actualSpeed*dt;
+if(tr.position.z>15)tr.position.z=-180;
+});
+
+spawnTimer+=dt;
+if(spawnTimer>1.35){
+spawnTimer=0;
+spawnCar();
 }
-draw();
-if(playing)requestAnimationFrame(loop);
+
+for(let i=traffic.length-1;i>=0;i--){
+const car=traffic[i];
+car.position.z+=(actualSpeed-12)*dt;
+if(Math.abs(car.position.x-player.position.x)<1.6&&Math.abs(car.position.z-player.position.z)<2.6){
+endGame();
 }
-function move(n){if(playing)player=Math.max(0,Math.min(2,player+n));}
-document.getElementById('left').onclick=()=>move(-1);
-document.getElementById('right').onclick=()=>move(1);
-onkeydown=e=>{if(e.key==='ArrowLeft')move(-1);if(e.key==='ArrowRight')move(1)};
+if(car.position.z>15){
+scene.remove(car);traffic.splice(i,1);
+}
+}
+camera.position.x=THREE.MathUtils.damp(camera.position.x,player.position.x*.3,3,dt);
+}
+renderer.render(scene,camera);
+}
+requestAnimationFrame(animate);
+
 document.getElementById('start').onclick=()=>{
-player=1;cars=[];score=0;spawn=0;speed=5;playing=true;
-document.getElementById('menu').style.display='none';loop();
+traffic.forEach(c=>scene.remove(c));
+traffic.length=0;
+score=0;lane=1;speed=27;spawnTimer=0;nitro=false;
+player.position.set(0,0,5);
+camera.position.set(0,5,10);
+running=true;
+document.getElementById('menu').style.display='none';
 };
-draw();
+
+onresize=()=>{
+camera.aspect=innerWidth/innerHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(innerWidth,innerHeight);
+};
 </script>
 </body>
 </html>
